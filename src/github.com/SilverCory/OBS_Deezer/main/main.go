@@ -33,7 +33,7 @@ func main() {
 	refreshRate := flag.Int("time", 10, "Refresh rate in seconds. Zero or less results in no refresh.")
 	id := flag.Int("id", 875499801, "The deezer proile ID.")
 	fileName := flag.String("saveName", "deezer_now", "The filename to save to. If empty no save.")
-	txtFormat := flag.String("txtFormat", "%SONG_TITLE%\\n%ARTIST_NAME%\\n%ALBUM_TITLE%", "The format of the title. Possible formats are:\n\t\t"+possibleFormats)
+	txtFormat := flag.String("txtFormat", ""%SONG_TITLE%\\n\\n%ARTIST_NAME%"", "The format of the title. Possible formats are:\n\t\t"+possibleFormats)
 	flag.Parse()
 
 	d, err := deezer.CreateDeezer(*id)
