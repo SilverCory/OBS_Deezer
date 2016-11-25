@@ -1,0 +1,173 @@
+package main
+
+import (
+	"encoding/json"
+	"flag"
+	"fmt"
+	"image/jpeg"
+	"io/ioutil"
+	"os"
+	"time"
+
+	"strings"
+
+	"github.com/SilverCory/OBS_Deezer/deezer"
+)
+
+var possibleFormats string
+
+func init() {
+	possibleFormats += "%ALBUM_ID%\n"
+	possibleFormats += "%ALBUM_PICTURE%\n"
+	possibleFormats += "%ALBUM_TITLE%\n"
+
+	possibleFormats += "%ARTIST_ID%\n"
+	possibleFormats += "%ARTIST_NAME%\n"
+
+	possibleFormats += "%SONG_ID%\n"
+	possibleFormats += "%SONG_TITLE%"
+}
+
+func main() {
+
+	refreshRate := flag.Int("time", 10, "Refresh rate in seconds. Zero or less results in no refresh.")
+	id := flag.Int("id", 875499801, "The deezer proile ID.")
+	fileName := flag.String("saveName", "deezer_now", "The filename to save to. If empty no save.")
+	txtFormat := flag.String("txtFormat", "%SONG_TITLE%\\n%ARTIST_NAME%\\n%ALBUM_TITLE%", "The format of the title. Possible formats are:\n"+possibleFormats)
+	flag.Parse()
+
+	d, err := deezer.CreateDeezer(*id)
+	var currentHash = ""
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if *refreshRate <= 0 {
+		doOutput(d)
+		return
+	}
+
+	ticker := time.NewTicker(time.Duration(*refreshRate) * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			err := d.Fetch()
+			if err != nil {
+				fmt.Println(err)
+				continue
+			} else {
+				newHash := createHash(d)
+				if strings.Compare(currentHash, newHash) != 0 {
+					currentHash = newHash
+					doOutput(d)
+					writeFile(d, *fileName, *txtFormat)
+				}
+			}
+		}
+	}
+
+}
+
+// Create a hash used for compaison so that we're not writing the same files.
+func createHash(d *deezer.Deezer) string {
+	var data string
+
+	if !d.Online {
+		data = "nol"
+	} else {
+		data += d.SongData.AlbumID + "_"
+		data += d.SongData.SongID + "_"
+		data += d.SongData.ArtistID
+	}
+
+	return data
+
+}
+
+// Write the files.
+func writeFile(d *deezer.Deezer, fileName string, txtFormat string) {
+
+	if len(fileName) <= 0 {
+		return
+	}
+
+	var err error
+	var data []byte
+
+	if d.Online {
+		data, err = json.Marshal(d.SongData)
+		if err != nil {
+			fmt.Println(err)
+			err = nil
+		}
+	} else {
+		data = []byte("{online: \"false\"}")
+	}
+
+	err = ioutil.WriteFile("./"+fileName+".json", data, 0644)
+	if err != nil {
+		fmt.Println(err)
+		err = nil
+	}
+
+	if len(txtFormat) > 0 {
+
+		// Yes this is messy, yes I could have used reflection, no I didn't I know.
+		if d.Online {
+			txtFormat = strings.Replace(txtFormat, "\\n", "\n", -1)
+
+			txtFormat = strings.Replace(txtFormat, "%ALBUM_ID%", d.SongData.AlbumID, -1)
+			txtFormat = strings.Replace(txtFormat, "%ALBUM_PICTURE%", d.SongData.AlbumPicture, -1)
+			txtFormat = strings.Replace(txtFormat, "%ALBUM_TITLE%", d.SongData.AlbumTitle, -1)
+
+			txtFormat = strings.Replace(txtFormat, "%ARTIST_ID%", d.SongData.ArtistID, -1)
+			txtFormat = strings.Replace(txtFormat, "%ARTIST_NAME%", d.SongData.ArtistName, -1)
+
+			txtFormat = strings.Replace(txtFormat, "%SONG_ID%", d.SongData.SongID, -1)
+			txtFormat = strings.Replace(txtFormat, "%SONG_TITLE%", d.SongData.SongTitle, -1)
+		} else {
+			txtFormat = ""
+		}
+
+		err = ioutil.WriteFile("./"+fileName+".txt", []byte(txtFormat), 0644)
+		if err != nil {
+			fmt.Println(err)
+			err = nil
+		}
+
+	}
+
+	if !d.Online || d.SongData.AlbumImage == nil {
+		os.Remove("./" + fileName + ".jpg")
+		if err != nil {
+			fmt.Println(err)
+			err = nil
+		}
+		return
+	}
+
+	out, err := os.Create("./" + fileName + ".jpg")
+	if err != nil {
+		fmt.Println(err)
+		err = nil
+	}
+
+	var opt jpeg.Options
+	opt.Quality = 80
+
+	err = jpeg.Encode(out, d.SongData.AlbumImage, &opt)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+}
+
+func doOutput(d *deezer.Deezer) {
+	if d.Online {
+		fmt.Println(d.SongData.SongTitle + " - " + d.SongData.ArtistName)
+	} else {
+		fmt.Println("User is not online.")
+	}
+}
