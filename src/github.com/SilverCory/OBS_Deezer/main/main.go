@@ -17,15 +17,15 @@ import (
 var possibleFormats string
 
 func init() {
-	possibleFormats += "%ALBUM_ID%\n"
-	possibleFormats += "%ALBUM_PICTURE%\n"
-	possibleFormats += "%ALBUM_TITLE%\n"
+	possibleFormats += "%ALBUM_ID%\n\t\t"
+	possibleFormats += "%ALBUM_PICTURE%\n\t\t"
+	possibleFormats += "%ALBUM_TITLE%\n\t\t"
 
-	possibleFormats += "%ARTIST_ID%\n"
-	possibleFormats += "%ARTIST_NAME%\n"
+	possibleFormats += "%ARTIST_ID%\n\t\t"
+	possibleFormats += "%ARTIST_NAME%\n\t\t"
 
-	possibleFormats += "%SONG_ID%\n"
-	possibleFormats += "%SONG_TITLE%"
+	possibleFormats += "%SONG_ID%\n\t\t"
+	possibleFormats += "%SONG_TITLE%\n\t\t"
 }
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 	refreshRate := flag.Int("time", 10, "Refresh rate in seconds. Zero or less results in no refresh.")
 	id := flag.Int("id", 875499801, "The deezer proile ID.")
 	fileName := flag.String("saveName", "deezer_now", "The filename to save to. If empty no save.")
-	txtFormat := flag.String("txtFormat", "%SONG_TITLE%\\n%ARTIST_NAME%\\n%ALBUM_TITLE%", "The format of the title. Possible formats are:\n"+possibleFormats)
+	txtFormat := flag.String("txtFormat", "%SONG_TITLE%\\n%ARTIST_NAME%\\n%ALBUM_TITLE%", "The format of the title. Possible formats are:\n\t\t"+possibleFormats)
 	flag.Parse()
 
 	d, err := deezer.CreateDeezer(*id)
