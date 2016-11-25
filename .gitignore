@@ -1,6 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 ### Golang
 pkg/
+main
 
 ### Project files
 deezer_now.*
