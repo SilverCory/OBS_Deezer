@@ -36,19 +36,25 @@ func main() {
 	txtFormat := flag.String("txtFormat", "%SONG_TITLE%\\n\\n%ARTIST_NAME%", "The format of the title. Possible formats are:\n\t\t"+possibleFormats)
 	flag.Parse()
 
+	// Create the instance whitch calls fetch first.
 	d, err := deezer.CreateDeezer(*id)
-	var currentHash = ""
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
+	// Do first output, hash calculation and file writes.
+	var currentHash = createHash(d)
+	doOutput(d)
+	writeFile(d, *fileName, *txtFormat)
+
+	// Return if refreshing is disabled.
 	if *refreshRate <= 0 {
-		doOutput(d)
 		return
 	}
 
+	// Refresh using a ticker.
 	ticker := time.NewTicker(time.Duration(*refreshRate) * time.Second)
 	for {
 		select {
@@ -89,10 +95,12 @@ func createHash(d *deezer.Deezer) string {
 // Write the files.
 func writeFile(d *deezer.Deezer, fileName string, txtFormat string) {
 
+	// Return if filewriting is disabled.
 	if len(fileName) <= 0 {
 		return
 	}
 
+	// Write the JSON file.
 	var err error
 	var data []byte
 
@@ -112,6 +120,7 @@ func writeFile(d *deezer.Deezer, fileName string, txtFormat string) {
 		err = nil
 	}
 
+	// Write the txt file.
 	if len(txtFormat) > 0 {
 
 		// Yes this is messy, yes I could have used reflection, no I didn't I know.
@@ -139,6 +148,7 @@ func writeFile(d *deezer.Deezer, fileName string, txtFormat string) {
 
 	}
 
+	// Write the image.
 	if !d.Online || d.SongData.AlbumImage == nil {
 		os.Remove("./" + fileName + ".jpg")
 		if err != nil {
@@ -164,6 +174,7 @@ func writeFile(d *deezer.Deezer, fileName string, txtFormat string) {
 
 }
 
+// Log the data to console.
 func doOutput(d *deezer.Deezer) {
 	if d.Online {
 		fmt.Println(d.SongData.SongTitle + " - " + d.SongData.ArtistName)

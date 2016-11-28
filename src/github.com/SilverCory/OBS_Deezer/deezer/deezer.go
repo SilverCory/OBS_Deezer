@@ -9,14 +9,15 @@ import (
 	"strings"
 
 	"image"
-	_ "image/jpeg"
+	_ "image/jpeg" // Used for JPEG image.
 
 	"fmt"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
-type DeezerSongData struct {
+// SongData struct for the song data and image.
+type SongData struct {
 	SongID    string `json:"SNG_ID"`
 	SongTitle string `json:"SNG_TITLE"`
 
@@ -29,16 +30,18 @@ type DeezerSongData struct {
 	AlbumImage   image.Image `json:"-"`
 }
 
+// Deezer data and instance.
 type Deezer struct {
 	ProfileID int // The profile ID E.G. 875499801
-	SongData  DeezerSongData
+	SongData  SongData
 	Online    bool
 }
 
-func CreateDeezer(UserId int) (*Deezer, error) {
+// CreateDeezer initially creates the instance and fetch first.
+func CreateDeezer(UserID int) (*Deezer, error) {
 
 	instance := &Deezer{
-		ProfileID: UserId,
+		ProfileID: UserID,
 	}
 
 	err := instance.Fetch()
@@ -47,6 +50,7 @@ func CreateDeezer(UserId int) (*Deezer, error) {
 
 }
 
+// Fetch fetches all the data from deezer.
 func (d *Deezer) Fetch() error {
 
 	doc, err := goquery.NewDocument("http://www.deezer.com/profile/" + strconv.Itoa(d.ProfileID))
@@ -87,13 +91,14 @@ func (d *Deezer) Fetch() error {
 
 	} else {
 		d.Online = false
-		d.SongData = DeezerSongData{}
+		d.SongData = SongData{}
 	}
 
 	return nil
 
 }
 
+// fetchImage Fetches the image from deezer cdn.
 func (d *Deezer) fetchImage() {
 
 	url := "http://cdn-images.deezer.com/images/cover/"
@@ -121,9 +126,10 @@ func (d *Deezer) fetchImage() {
 
 }
 
-func (d *Deezer) processSongData(data map[string]interface{}) (DeezerSongData, error) {
+// processSongData transforms the data to and from JSON in order to put it in the SongData struct.
+func (d *Deezer) processSongData(data map[string]interface{}) (SongData, error) {
 
-	songData := DeezerSongData{}
+	songData := SongData{}
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
